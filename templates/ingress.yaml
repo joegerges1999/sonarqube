@@ -1,0 +1,18 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+    labels:
+      app: sonarqube
+    name: {{ .Values.team }}-sonarqube-ingress   
+spec:
+    rules:
+    - host: {{ .Values.hostname }}
+      http:
+        paths:
+        - path: {{ .Values.sonarqube.webcontext }}
+          backend:
+            serviceName: {{ .Values.team }}-sonarqube-service 
+            servicePort: {{ .Values.service.port }}
+{{- end }}
+

@@ -1,0 +1,39 @@
+replicaCount: 1
+
+team: jgerges
+
+hostname: "jgerges"
+
+requests:
+  cpu: 500m
+  memory: 1024Mi
+
+limits:
+  cpu: 2000m
+  memory: 2048Mi
+
+sonarqube:
+  image:
+    name: sonarqube
+    tag: "8.3.1-community"
+  port: 9000
+  webcontext: /sonar
+
+db:
+  image:
+    name: postgres
+    tag: latest
+  port: 5432
+  name: sonar
+  user: sonar
+  password: sonar
+
+ingress:
+  enabled: true
+
+service:
+  enabled: true
+  port: 9000
+
+deployment:
+  enabled: true
