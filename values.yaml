@@ -38,8 +38,10 @@ db:
     tag: latest
   port: 5432
   name: sonar
-  user: sonar
-  password: sonar
+  credentials:
+    secret: "pg-credentials"
+    usernameKey: "username"
+    passwordKey: "password"
 
 env:
 #  - name: env-name-1
@@ -59,7 +61,12 @@ regex:
 
 pvc:
   enabled: true
-  accessMode: ReadWriteMany
+  sqDataName: data
+  sqLogsName: logs
+  sqConfName: conf
+  sqExtensionsName: extensions
+  pgName: current
+  pgDataName: data
 
 persistance:
   enabled: true
@@ -81,3 +88,15 @@ service:
 
 deployment:
   enabled: true
+
+probes:
+  enabled: true
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodsSeconds: 30
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    failureThreshold: 6
+    
+  

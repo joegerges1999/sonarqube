@@ -33,7 +33,7 @@ spec:
         command:
         - sh
         - -c
-        - chmod -R 777 /opt/sonarqube/extensions /opt/sonarqube/conf /opt/sonarqube/logs /opt/sonarqube/data
+        - chmod -R 777 /opt/sonarqube/extensions /opt/sonarqube/conf /opt/sonarqube/logs /opt/sonarqube/data && chown -R 999:999 /opt/sonarqube/data /opt/sonarqube/extensions /opt/sonarqube/logs /opt/sonarqube/conf
         securityContext:
           privileged: true
         volumeMounts:
@@ -70,9 +70,15 @@ spec:
           - name: DB_NAME
             value: {{ .Values.db.name }}
           - name: POSTGRES_USER
-            value: {{ .Values.db.user }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.db.credentials.secret }}
+                key: {{ .Values.db.credentials.usernameKey }}
           - name: POSTGRES_PASSWORD
-            value: {{ .Values.db.password }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.db.credentials.secret }}
+                key: {{ .Values.db.credentials.passwordKey }}
           {{- if .Values.persistance.enabled }}
           volumeMounts:
           - mountPath: /var/lib/postgresql
@@ -91,6 +97,21 @@ spec:
               cpu: {{ .Values.cappedRequests.limits.cpu }}
               memory: {{ .Values.cappedRequests.limits.memory }}
           {{- end }}
+          {{- if .Values.probes.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /{{ .Values.sonarqube.webcontext }}
+              port: {{ .Values.sonarqube.port }}
+            initialDelaySeconds: {{ .Values.probes.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /{{ .Values.sonarqube.webcontext }}
+              port: {{ .Values.sonarqube.port }}
+            initialDelaySeconds: {{ .Values.probes.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readinessProbe.failureThreshold }}
+          {{- end }}
           {{- if .Values.persistance.enabled }}
           volumeMounts:
           - mountPath: /opt/sonarqube/data/
@@ -103,12 +124,18 @@ spec:
             name: sonar-conf
           {{- end }}
           env:
-          - name: SONARQUBE_JDBC_USERNAME
-            value: {{ .Values.db.user }}
           - name: SONARQUBE_JDBC_URL
-            value: jdbc:postgresql://localhost:{{ .Values.db.port }}/{{ .Values.db.name }} 
+            value: jdbc:postgresql://localhost:{{ .Values.db.port }}/{{ .Values.db.name }}
+          - name: SONARQUBE_JDBC_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.db.credentials.secret }}
+                key: {{ .Values.db.credentials.usernameKey }} 
           - name: SONARQUBE_JDBC_PASSWORD
-            value: {{ .Values.db.password }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.db.credentials.secret }}
+                key: {{ .Values.db.credentials.passwordKey }}
           - name: sonar.web.context
             value: /{{ .Values.sonarqube.webcontext }}
           {{- if .Values.sonarqube.proxy.enabled }}
@@ -132,21 +159,21 @@ spec:
       volumes:
       - name: sonar-data
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-data-pvc
+          claimName: sq-{{ .Values.pvc.sqDataName }}-pvc #sonarqube-data-pvc
       - name: sonar-extensions
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-extensions-pvc
+          claimName: sq-{{ .Values.pvc.sqExtensionsName }}-pvc #sonarqube-extensions-pvc
       - name: sonar-conf
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-conf-pvc
+          claimName: sq-{{ .Values.pvc.sqConfName }}-pvc #sonarqube-conf-pvc
       - name: sonar-logs
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-logs-pvc
+          claimName: sq-{{ .Values.pvc.sqLogsName }}-pvc #sonarqube-logs-pvc
       - name: postgresql
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-postgresql-pvc
+          claimName: sq-pg-{{ .Values.pvc.pgName }}-pvc #sonarqube-postgresql-pvc
       - name: postgresql-data
         persistentVolumeClaim:
-          claimName: {{ .Values.team }}-sonarqube-postgresql-data-pvc
+          claimName: sq-pg-{{ .Values.pvc.pgDataName }}-pvc #sonarqube-postgresql-data-pvc
       {{- end }}
 {{- end }}
